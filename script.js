@@ -621,10 +621,10 @@ function setHero(movie) {
   dom.featureScore.textContent = movie.vote_average ? `${movie.vote_average.toFixed(1)} / 10` : "-- / 10";
   dom.featureLabel.textContent =
     state.media === "movie"
-      ? "Recent movie spotlight"
+      ? "Fresh movie spotlight"
       : state.media === "anime"
-        ? "Recent anime spotlight"
-        : "Recent series spotlight";
+        ? "Fresh anime spotlight"
+        : "Fresh series spotlight";
   dom.featureMedia.innerHTML = movie.backdrop_path
     ? `<img src="${posterUrl(movie.backdrop_path)}" alt="${escapeHtml(movie.title || movie.name)} backdrop" />`
     : `<div class="feature-placeholder">No backdrop available for this title.</div>`;
@@ -1158,10 +1158,10 @@ function updateSectionButtonLabels() {
   }...</div>`;
   dom.featureLabel.textContent =
     state.media === "movie"
-      ? "Recent movie spotlight"
+      ? "Fresh movie spotlight"
       : state.media === "anime"
-        ? "Recent anime spotlight"
-        : "Recent series spotlight";
+        ? "Fresh anime spotlight"
+        : "Fresh series spotlight";
 }
 
 async function refreshData() {
