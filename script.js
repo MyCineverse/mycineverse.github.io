@@ -855,15 +855,12 @@ function getStreamingLinksFor(data, mediaType) {
     return `
       <a class="provider-pill" href="https://animepahe.pw" target="_blank" rel="noreferrer">animepahe</a>
       <a class="provider-pill" href="https://kisskh.do" target="_blank" rel="noreferrer">kisskh</a>
-      <a class="provider-pill" href="https://9animex.tv" target="_blank" rel="noreferrer">9anime</a>
     `;
   }
 
   return `
     <a class="provider-pill" href="https://nkiri.ink" target="_blank" rel="noreferrer">Nkiri</a>
-    <a class="provider-pill" href="https://moviebox.ph" target="_blank" rel="noreferrer">Moviebox</a>
     <a class="provider-pill" href="https://videodownloader.site" target="_blank" rel="noreferrer">Moviedownloader</a>
-    <a class="provider-pill" href="https://o2tvseries.com" target="_blank" rel="noreferrer">o2tvseries</a>
   `;
 }
 
