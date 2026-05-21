@@ -859,13 +859,12 @@ function getStreamingLinksFor(data, mediaType) {
     return `
       <a class="provider-pill" href="https://animepahe.pw" target="_blank" rel="noreferrer">animepahe</a>
       <a class="provider-pill" href="https://kisskh.do" target="_blank" rel="noreferrer">kisskh</a>
-      <a class="provider-pill" href="${downloaderUrl}" target="_blank" rel="noreferrer">Moviedownloader</a>
+      <a class="provider-pill" href="${downloaderUrl}">Download Movie</a>
     `;
   }
 
   return `
-    <a class="provider-pill" href="https://nkiri.ink" target="_blank" rel="noreferrer">Nkiri</a>
-    <a class="provider-pill" href="${downloaderUrl}" target="_blank" rel="noreferrer">Moviedownloader</a>
+    <a class="provider-pill" href="${downloaderUrl}">Download Movie</a>
   `;
 }
 
