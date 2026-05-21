@@ -852,7 +852,7 @@ function isAnimeTitle(data) {
 
 function getStreamingLinksFor(data, mediaType) {
   const title = (data.title || data.name || data.original_title || data.original_name || "").trim();
-  const query = title ? encodeURIComponent(title).replace(/%20/g, "+") : "";
+  const query = title ? encodeURIComponent(title) : "";
   const downloaderUrl = query ? `https://videodownloader.site/?q=${query}` : "https://videodownloader.site";
 
   if (mediaType === "anime") {
