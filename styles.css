@@ -343,29 +343,10 @@ main {
 }
 
 .toolbar,
-.results,
-.results-new-releases {
+.results {
   margin-top: 1.35rem;
   border-radius: 1.9rem;
   padding: 1.2rem;
-}
-
-.results-new-releases .section-title {
-  margin-bottom: 0.9rem;
-}
-
-.results-new-releases .section-title p {
-  font-size: 0.84rem;
-}
-
-.results-new-releases .section-title h2 {
-  margin-top: 0.25rem;
-  font-size: clamp(1.8rem, 3.2vw, 2.7rem);
-  line-height: 0.98;
-}
-
-.results-new-releases .status {
-  color: var(--muted);
 }
 
 .ad-block {
@@ -985,7 +966,6 @@ main {
   .feature-copy,
   .toolbar,
   .results,
-  .results-new-releases,
   .platforms-panel,
   .ad-block {
     border-radius: 1.35rem;
@@ -1093,10 +1073,6 @@ main {
 
   .results h2 {
     font-size: 1.35rem;
-  }
-
-  .results-new-releases .section-title h2 {
-    font-size: 1.7rem;
   }
 
   .movie-grid {

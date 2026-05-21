@@ -118,8 +118,6 @@ const dom = {
   featureRuntime: document.getElementById("feature-runtime"),
   featureScore: document.getElementById("feature-score"),
   featureOpen: document.getElementById("feature-open"),
-  newReleaseStatus: document.getElementById("new-release-status"),
-  newReleaseGrid: document.getElementById("new-release-grid"),
   clearSearch: document.getElementById("clear-search"),
   pagination: document.getElementById("pagination"),
   prevPage: document.getElementById("prev-page"),
@@ -313,38 +311,6 @@ function getRecentWindow(days = 30) {
     from: toYmd(start),
     to: toYmd(end),
   };
-}
-
-async function loadNewReleases() {
-  dom.newReleaseStatus.textContent = "Loading new releases...";
-  dom.newReleaseGrid.innerHTML = "";
-
-  try {
-    let results = [];
-    if (state.media === "anime") {
-      const data = await loadAnimeFeed(1, "new_releases");
-      results = data.results.slice(0, 8);
-    } else {
-      const { from, to } = getRecentWindow(30);
-      const path =
-        state.media === "movie"
-          ? `/discover/movie?primary_release_date.gte=${from}&primary_release_date.lte=${to}&sort_by=primary_release_date.desc&page=1`
-          : `/discover/tv?first_air_date.gte=${from}&first_air_date.lte=${to}&sort_by=first_air_date.desc&page=1`;
-      const data = await request(path);
-      results = (data.results || [])
-        .filter((item) => item.poster_path || item.backdrop_path)
-        .slice(0, 8);
-    }
-
-    dom.newReleaseGrid.innerHTML = results.length
-      ? results.map(createSearchResultCard).join("")
-      : `<div class="status">No new releases found for this section yet.</div>`;
-    dom.newReleaseStatus.textContent = results.length ? "" : "Showing only titles released recently.";
-  } catch (error) {
-    console.error(error);
-    dom.newReleaseGrid.innerHTML = `<div class="status">Could not load new releases right now.</div>`;
-    dom.newReleaseStatus.textContent = "";
-  }
 }
 
 function clearFeatureTimers() {
@@ -1168,7 +1134,7 @@ async function refreshData() {
   renderGenres();
   setStatus("Loading catalog data...");
   await Promise.all([loadGenres(), loadFeaturedMovie()]);
-  await Promise.all([loadNewReleases(), loadMovies()]);
+  await loadMovies();
   clearTimeout(refreshData._timer);
   refreshData._timer = window.setTimeout(() => {
     refreshData().catch((error) => console.error(error));
