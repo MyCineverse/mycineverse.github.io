@@ -851,16 +851,21 @@ function isAnimeTitle(data) {
 }
 
 function getStreamingLinksFor(data, mediaType) {
+  const title = (data.title || data.name || data.original_title || data.original_name || "").trim();
+  const query = title ? encodeURIComponent(title).replace(/%20/g, "+") : "";
+  const downloaderUrl = query ? `https://videodownloader.site/?q=${query}` : "https://videodownloader.site";
+
   if (mediaType === "anime") {
     return `
       <a class="provider-pill" href="https://animepahe.pw" target="_blank" rel="noreferrer">animepahe</a>
       <a class="provider-pill" href="https://kisskh.do" target="_blank" rel="noreferrer">kisskh</a>
+      <a class="provider-pill" href="${downloaderUrl}" target="_blank" rel="noreferrer">Moviedownloader</a>
     `;
   }
 
   return `
     <a class="provider-pill" href="https://nkiri.ink" target="_blank" rel="noreferrer">Nkiri</a>
-    <a class="provider-pill" href="https://videodownloader.site" target="_blank" rel="noreferrer">Moviedownloader</a>
+    <a class="provider-pill" href="${downloaderUrl}" target="_blank" rel="noreferrer">Moviedownloader</a>
   `;
 }
 
