@@ -343,10 +343,19 @@ main {
 }
 
 .toolbar,
-.results {
+.results,
+.results-new-releases {
   margin-top: 1.35rem;
   border-radius: 1.9rem;
   padding: 1.2rem;
+}
+
+.results-new-releases .section-title {
+  margin-bottom: 0.9rem;
+}
+
+.results-new-releases .status {
+  color: var(--muted);
 }
 
 .ad-block {
@@ -966,6 +975,7 @@ main {
   .feature-copy,
   .toolbar,
   .results,
+  .results-new-releases,
   .platforms-panel,
   .ad-block {
     border-radius: 1.35rem;
