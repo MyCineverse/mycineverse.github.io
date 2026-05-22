@@ -454,6 +454,17 @@ function getRecentWindow(days = 30) {
   };
 }
 
+function isReleasedItem(item) {
+  const rawDate = item.release_date || item.first_air_date || item.aired?.from || item.aired?.string;
+  if (item.status && /upcoming|not yet aired|planned|rumored/i.test(String(item.status))) return false;
+  if (!rawDate) return true;
+  const releaseDate = new Date(rawDate);
+  if (Number.isNaN(releaseDate.getTime())) return true;
+  const now = new Date();
+  now.setHours(23, 59, 59, 999);
+  return releaseDate <= now;
+}
+
 async function loadGenreFeed(page = 1) {
   const pageIndex = Math.max(1, Math.min(Number(page) || 1, 50));
   const genre = String(state.genre || "all");
@@ -474,7 +485,7 @@ async function loadGenreFeed(page = 1) {
   const releaseWindow =
     state.section === "new_releases"
       ? `&${dateKey}.gte=${from}&${dateKey}.lte=${to}`
-      : "";
+      : `&${dateKey}.lte=${to}`;
   const sortBy =
     state.section === "new_releases"
       ? (state.media === "movie" ? "primary_release_date.desc" : "first_air_date.desc")
@@ -490,7 +501,9 @@ async function loadGenreFeed(page = 1) {
   const data = await request(path);
   return {
     ...data,
-    results: (data.results || []).filter((item) => item.poster_path || item.backdrop_path),
+    results: (data.results || [])
+      .filter((item) => item.poster_path || item.backdrop_path)
+      .filter(isReleasedItem),
     total_pages: data.total_pages || 1,
   };
 }
