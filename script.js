@@ -310,6 +310,11 @@ function suggestionType(item) {
   return cardTypeLabel(item);
 }
 
+function activeGenreName() {
+  if (state.genre === "all") return "";
+  return state.genres.find((genre) => String(genre.id) === String(state.genre))?.name || "Selected genre";
+}
+
 function rankSuggestion(item, query) {
   const title = normalizeQuery(item.title || item.name || "");
   const q = normalizeQuery(query);
@@ -446,6 +451,47 @@ function getRecentWindow(days = 30) {
   return {
     from: toYmd(start),
     to: toYmd(end),
+  };
+}
+
+async function loadGenreFeed(page = 1) {
+  const pageIndex = Math.max(1, Math.min(Number(page) || 1, 50));
+  const genre = String(state.genre || "all");
+  if (genre === "all") {
+    return null;
+  }
+
+  if (state.media === "anime") {
+    return loadAnimeFeed(pageIndex, state.section);
+  }
+
+  const { from, to } = getNewReleaseWindow();
+  const basePath =
+    state.media === "movie"
+      ? "/discover/movie"
+      : "/discover/tv";
+  const dateKey = state.media === "movie" ? "primary_release_date" : "first_air_date";
+  const releaseWindow =
+    state.section === "new_releases"
+      ? `&${dateKey}.gte=${from}&${dateKey}.lte=${to}`
+      : "";
+  const sortBy =
+    state.section === "new_releases"
+      ? (state.media === "movie" ? "primary_release_date.desc" : "first_air_date.desc")
+      : state.section === "top_rated"
+      ? "vote_average.desc"
+      : state.section === "now_playing"
+        ? (state.media === "movie" ? "primary_release_date.desc" : "first_air_date.desc")
+        : state.section === "upcoming"
+          ? "popularity.desc"
+          : "popularity.desc";
+
+  const path = `${basePath}?with_genres=${encodeURIComponent(genre)}${releaseWindow}&sort_by=${sortBy}&page=${pageIndex}`;
+  const data = await request(path);
+  return {
+    ...data,
+    results: (data.results || []).filter((item) => item.poster_path || item.backdrop_path),
+    total_pages: data.total_pages || 1,
   };
 }
 
@@ -754,6 +800,8 @@ async function loadMovies() {
   dom.resultsLabel.textContent = state.searchTerm ? "All search results" : active.label;
   dom.resultsTitle.textContent = state.searchTerm
     ? `Results for "${state.searchTerm}"`
+    : state.genre !== "all"
+      ? `${activeGenreName()} picks`
     : state.section === "new_releases"
       ? "Trending now"
       : `Browse ${active.label.toLowerCase()}`;
@@ -767,14 +815,15 @@ async function loadMovies() {
     if (state.searchTerm) {
       data = await fetchUnifiedSearch(state.searchTerm, state.currentPage);
       totalPages = data.total_pages || 1;
+    } else if (state.genre !== "all") {
+      data = await loadGenreFeed(state.currentPage);
+      if (!data) data = await request(`${active.endpoint}?page=${state.currentPage}`);
+      totalPages = data.total_pages || 1;
     } else if (state.media === "anime") {
       data = await loadAnimeFeed(state.currentPage, state.section, state.searchTerm);
       totalPages = data.total_pages || 1;
     } else if (state.section === "new_releases") {
       data = await loadTrendingFeed(state.currentPage);
-      totalPages = data.total_pages || 1;
-    } else if (state.genre !== "all") {
-      data = await request(`/discover/${state.media}?with_genres=${encodeURIComponent(state.genre)}&sort_by=popularity.desc&page=${state.currentPage}`);
       totalPages = data.total_pages || 1;
     } else {
       data = await request(`${active.endpoint}?page=${state.currentPage}`);
