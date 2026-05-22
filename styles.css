@@ -876,6 +876,39 @@ main {
   line-height: 1.75;
 }
 
+.error-links {
+  margin: 0 auto 1.25rem;
+  max-width: 56ch;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.55rem 0.85rem;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.error-links span {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.error-links a {
+  color: #b9d8ff;
+  text-decoration: none;
+  word-break: break-word;
+}
+
+.error-links a:hover {
+  text-decoration: underline;
+}
+
+.error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
 @keyframes shimmer {
   100% {
     transform: translateX(100%);
