@@ -8,15 +8,86 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    body.error-shell {
+      background:
+        radial-gradient(circle at top left, rgba(109, 214, 255, 0.18), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(248, 184, 78, 0.16), transparent 32%),
+        linear-gradient(180deg, #050816 0%, #0a1020 50%, #070b16 100%);
+      min-height: 100vh;
+    }
+    .error-page {
+      position: relative;
+      isolation: isolate;
+    }
+    .error-card {
+      position: relative;
+      overflow: hidden;
+      max-width: 820px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: linear-gradient(180deg, rgba(10, 15, 29, 0.92), rgba(6, 10, 20, 0.96));
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
+      backdrop-filter: blur(14px);
+    }
+    .error-card::before,
+    .error-card::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(18px);
+      opacity: 0.7;
+      pointer-events: none;
+    }
+    .error-card::before {
+      width: 10rem;
+      height: 10rem;
+      right: -2rem;
+      top: -2rem;
+      background: rgba(109, 214, 255, 0.22);
+    }
+    .error-card::after {
+      width: 8rem;
+      height: 8rem;
+      left: -1.5rem;
+      bottom: -1rem;
+      background: rgba(248, 184, 78, 0.2);
+    }
+    .error-mark {
+      width: 5rem;
+      height: 5rem;
+      margin: 0 auto 1rem;
+      display: block;
+      border-radius: 1.25rem;
+      box-shadow: 0 10px 28px rgba(248, 184, 78, 0.24);
+    }
+    .error-meta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 0 0 1rem;
+      padding: 0.45rem 0.8rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #d9e1f4;
+      font-size: 0.9rem;
+    }
+    .error-actions {
+      position: relative;
+      z-index: 1;
+    }
+  </style>
 </head>
-<body>
+<body class="error-shell">
   <div class="bg-orb bg-orb-one"></div>
   <div class="bg-orb bg-orb-two"></div>
 
   <main class="error-page">
     <section class="error-card">
+      <img class="error-mark" src="/assets/images/logo.svg" alt="" aria-hidden="true" />
       <p class="eyebrow">MyCineverse</p>
+      <div class="error-meta">The page you opened is no longer here</div>
       <h1>404</h1>
       <h2>This page moved to a new address.</h2>
       <p>
