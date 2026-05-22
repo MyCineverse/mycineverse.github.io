@@ -54,6 +54,9 @@ const state = {
   featuredTimer: null,
   featuredRefreshTimer: null,
   featuredIndex: 0,
+  searchSuggestTimer: null,
+  searchSuggestToken: 0,
+  searchSuggestions: [],
   currentMovies: [],
   currentPage: 1,
   totalPages: 1,
@@ -102,6 +105,7 @@ const dom = {
   hero: document.getElementById("hero"),
   searchForm: document.getElementById("search-form"),
   searchInput: document.getElementById("search-input"),
+  searchSuggestions: document.getElementById("search-suggestions"),
   movieGrid: document.getElementById("movie-grid"),
   status: document.getElementById("status"),
   resultsLabel: document.getElementById("results-label"),
@@ -288,6 +292,138 @@ function normalizeJikanAnime(item) {
 
 function normalizeJikanResults(data) {
   return (data?.data || []).map(normalizeJikanAnime).filter(Boolean);
+}
+
+function normalizeQuery(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^\w\s]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function suggestionYear(item) {
+  return formatYear(item.release_date || item.first_air_date || item.aired?.from || item.aired?.string);
+}
+
+function suggestionType(item) {
+  return cardTypeLabel(item);
+}
+
+function rankSuggestion(item, query) {
+  const title = normalizeQuery(item.title || item.name || "");
+  const q = normalizeQuery(query);
+  if (!q || !title) return 99;
+  if (title === q) return 0;
+  if (title.startsWith(q)) return 1;
+  if (title.includes(q)) return 2;
+  return 3;
+}
+
+function renderSearchSuggestions(items) {
+  if (!dom.searchSuggestions) return;
+  if (!items.length) {
+    dom.searchSuggestions.hidden = true;
+    dom.searchSuggestions.innerHTML = "";
+    return;
+  }
+
+  dom.searchSuggestions.hidden = false;
+  dom.searchSuggestions.innerHTML = items
+    .map((item, index) => {
+      const title = item.title || item.name || "Untitled";
+      return `
+        <button class="search-suggestion" type="button" data-suggestion-index="${index}" data-open="${item.id}" data-media-type="${item.media_type}">
+          <span class="search-suggestion-title">${escapeHtml(title)}</span>
+          <span class="search-suggestion-meta">${escapeHtml(suggestionType(item))} · ${escapeHtml(suggestionYear(item))}</span>
+        </button>
+      `;
+    })
+    .join("");
+}
+
+function clearSearchSuggestions() {
+  state.searchSuggestions = [];
+  state.searchSuggestToken += 1;
+  if (!dom.searchSuggestions) return;
+  dom.searchSuggestions.hidden = true;
+  dom.searchSuggestions.innerHTML = "";
+}
+
+async function fetchUnifiedSearch(query, page = 1) {
+  const trimmed = String(query || "").trim();
+  if (trimmed.length < 2) {
+    return { results: [], total_pages: 1 };
+  }
+
+  const [tmdbResults, jikanResults] = await Promise.allSettled([
+    request(`/search/multi?query=${encodeURIComponent(trimmed)}&page=${page}&include_adult=false`),
+    requestJikan(`/anime?q=${encodeURIComponent(trimmed)}&page=${page}&sfw=true`),
+  ]);
+
+  const merged = [];
+  const seen = new Set();
+  const pushItem = (item) => {
+    if (!item?.id) return;
+    const key = `${item.media_type || "movie"}:${item.id}`;
+    if (seen.has(key)) return;
+    if (!item.poster_path && !item.backdrop_path) return;
+    seen.add(key);
+    merged.push(item);
+  };
+
+  if (tmdbResults.status === "fulfilled") {
+    (tmdbResults.value.results || [])
+      .filter((item) => item.media_type !== "person")
+      .map((item) => (item.media_type ? item : { ...item, media_type: item.title ? "movie" : "tv" }))
+      .forEach(pushItem);
+  }
+
+  if (jikanResults.status === "fulfilled") {
+    normalizeJikanResults(jikanResults.value).forEach(pushItem);
+  }
+
+  const ranked = merged
+    .map((item, index) => ({
+      ...item,
+      _rank: rankSuggestion(item, trimmed),
+      _index: index,
+    }))
+    .sort((a, b) => a._rank - b._rank || a._index - b._index)
+    .map(({ _rank, _index, ...item }) => item);
+
+  const totalPages = Math.max(
+    tmdbResults.status === "fulfilled" ? tmdbResults.value.total_pages || 1 : 1,
+    jikanResults.status === "fulfilled" ? jikanResults.value.pagination?.last_visible_page || 1 : 1
+  );
+
+  return {
+    results: ranked,
+    total_pages: Math.max(1, Math.min(totalPages || 1, 50)),
+  };
+}
+
+async function loadSearchSuggestions(query) {
+  const trimmed = String(query || "").trim();
+  const token = ++state.searchSuggestToken;
+  if (trimmed.length < 2) {
+    state.searchSuggestions = [];
+    renderSearchSuggestions([]);
+    return;
+  }
+
+  try {
+    const data = await fetchUnifiedSearch(trimmed, 1);
+    if (token !== state.searchSuggestToken) return;
+    const ranked = (data.results || []).slice(0, 8);
+    state.searchSuggestions = ranked;
+    renderSearchSuggestions(ranked);
+  } catch (error) {
+    console.error(error);
+    if (token !== state.searchSuggestToken) return;
+    state.searchSuggestions = [];
+    renderSearchSuggestions([]);
+  }
 }
 
 function getNewReleaseWindow() {
@@ -628,11 +764,11 @@ async function loadMovies() {
   try {
     let data;
     let totalPages = 1;
-    if (state.media === "anime") {
-      data = await loadAnimeFeed(state.currentPage, state.section, state.searchTerm);
+    if (state.searchTerm) {
+      data = await fetchUnifiedSearch(state.searchTerm, state.currentPage);
       totalPages = data.total_pages || 1;
-    } else if (state.searchTerm) {
-      data = await request(`/search/multi?query=${encodeURIComponent(state.searchTerm)}&page=${state.currentPage}&include_adult=false`);
+    } else if (state.media === "anime") {
+      data = await loadAnimeFeed(state.currentPage, state.section, state.searchTerm);
       totalPages = data.total_pages || 1;
     } else if (state.section === "new_releases") {
       data = await loadTrendingFeed(state.currentPage);
@@ -652,7 +788,9 @@ async function loadMovies() {
       )
       .filter((movie) => movie.poster_path || movie.backdrop_path);
     const filteredMovies =
-      state.media === "anime"
+      state.searchTerm
+        ? sourceMovies
+        : state.media === "anime"
         ? sourceMovies.filter(isAnimeListingItem).filter((movie) =>
             state.genre === "all" ? true : (movie.genre_ids || []).map(String).includes(String(state.genre))
           )
@@ -1030,6 +1168,7 @@ function wireEvents() {
       state.totalPages = 1;
       dom.searchInput.value = "";
       dom.clearSearch.hidden = true;
+      clearSearchSuggestions();
       document.querySelectorAll("[data-section]").forEach((item, index) => {
         item.classList.toggle("active", index === 0);
       });
@@ -1045,6 +1184,7 @@ function wireEvents() {
       state.section = button.dataset.section;
       state.genre = "all";
       state.currentPage = 1;
+      clearSearchSuggestions();
       renderGenres();
       loadMovies();
     });
@@ -1061,7 +1201,26 @@ function wireEvents() {
   dom.searchForm.addEventListener("submit", (event) => {
     event.preventDefault();
     state.currentPage = 1;
+    clearSearchSuggestions();
     loadMovies();
+  });
+
+  dom.searchInput.addEventListener("input", () => {
+    const query = dom.searchInput.value.trim();
+    if (!query) {
+      clearSearchSuggestions();
+      return;
+    }
+    window.clearTimeout(state.searchSuggestTimer);
+    state.searchSuggestTimer = window.setTimeout(() => {
+      loadSearchSuggestions(query).catch((error) => console.error(error));
+    }, 220);
+  });
+
+  dom.searchInput.addEventListener("focus", () => {
+    if (state.searchSuggestions.length) {
+      renderSearchSuggestions(state.searchSuggestions);
+    }
   });
 
   dom.clearSearch.addEventListener("click", () => {
@@ -1069,6 +1228,7 @@ function wireEvents() {
     state.searchTerm = "";
     dom.clearSearch.hidden = true;
     state.currentPage = 1;
+    clearSearchSuggestions();
     loadMovies();
   });
 
@@ -1095,6 +1255,18 @@ function wireEvents() {
     openTitle(button.dataset.open, button.dataset.mediaType || state.media);
   });
 
+  dom.searchSuggestions?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-suggestion-index]");
+    if (!button) return;
+    const index = Number(button.dataset.suggestionIndex);
+    const selected = state.searchSuggestions[index];
+    if (!selected) return;
+    dom.searchInput.value = selected.title || selected.name || "";
+    state.currentPage = 1;
+    clearSearchSuggestions();
+    loadMovies();
+  });
+
   dom.closeModal.addEventListener("click", () => dom.modal.close());
   dom.modal.addEventListener("click", (event) => {
     const rect = dom.modal.getBoundingClientRect();
@@ -1104,6 +1276,13 @@ function wireEvents() {
       event.clientY < rect.top ||
       event.clientY > rect.bottom;
     if (clickedOutside) dom.modal.close();
+  });
+
+  document.addEventListener("click", (event) => {
+    const clickedSearch = event.target.closest?.(".search-bar") || event.target.closest?.(".search-suggestions");
+    if (!clickedSearch) {
+      clearSearchSuggestions();
+    }
   });
 }
 

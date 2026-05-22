@@ -53,6 +53,7 @@
           />
           <button type="submit">Search</button>
         </form>
+        <div class="search-suggestions" id="search-suggestions" hidden aria-label="Search suggestions"></div>
 
         <div class="hero-stats">
           <div>
@@ -88,6 +89,35 @@
       </aside>
     </section>
 
+    <section class="toolbar">
+      <div class="section-title">
+        <p>Browse</p>
+        <h2>Genres and collections</h2>
+      </div>
+      <div class="pill-row" id="genre-row">
+        <button class="pill active" data-genre="all">All</button>
+        <span class="pill pill-muted">Loading genres...</span>
+      </div>
+    </section>
+
+    <section class="results">
+      <div class="results-head">
+        <div>
+          <p class="eyebrow" id="results-label">Popular titles</p>
+          <h2 id="results-title">Movies to explore</h2>
+        </div>
+        <button class="text-button" id="clear-search" hidden>Clear search</button>
+      </div>
+
+      <div class="status" id="status" role="status" aria-live="polite"></div>
+      <div class="movie-grid" id="movie-grid"></div>
+      <div class="pagination" id="pagination" aria-label="Pagination">
+        <button class="page-button" id="prev-page" disabled>Previous</button>
+        <span class="page-indicator" id="page-indicator">Page 1 of 1</span>
+        <button class="page-button" id="next-page" disabled>Next</button>
+      </div>
+    </section>
+
     <section class="platforms-panel" aria-labelledby="platforms-title">
       <div class="section-title">
         <p>Watch elsewhere</p>
@@ -118,35 +148,6 @@
             <a class="platform-card" href="https://9animetv.do" target="_blank" rel="noreferrer">9AnimeTV</a>
           </div>
         </div>
-      </div>
-    </section>
-
-    <section class="toolbar">
-      <div class="section-title">
-        <p>Browse</p>
-        <h2>Genres and collections</h2>
-      </div>
-      <div class="pill-row" id="genre-row">
-        <button class="pill active" data-genre="all">All</button>
-        <span class="pill pill-muted">Loading genres...</span>
-      </div>
-    </section>
-
-    <section class="results">
-      <div class="results-head">
-        <div>
-          <p class="eyebrow" id="results-label">Popular titles</p>
-          <h2 id="results-title">Movies to explore</h2>
-        </div>
-        <button class="text-button" id="clear-search" hidden>Clear search</button>
-      </div>
-
-      <div class="status" id="status" role="status" aria-live="polite"></div>
-      <div class="movie-grid" id="movie-grid"></div>
-      <div class="pagination" id="pagination" aria-label="Pagination">
-        <button class="page-button" id="prev-page" disabled>Previous</button>
-        <span class="page-indicator" id="page-indicator">Page 1 of 1</span>
-        <button class="page-button" id="next-page" disabled>Next</button>
       </div>
     </section>
   </main>

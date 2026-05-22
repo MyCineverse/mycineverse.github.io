@@ -217,6 +217,7 @@ main {
 }
 
 .search-bar {
+  position: relative;
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 0.75rem;
@@ -247,6 +248,47 @@ main {
   color: #16110a;
   font-weight: 800;
   padding: 0.9rem 1.2rem;
+}
+
+.search-suggestions {
+  margin-top: 0.7rem;
+  padding: 0.55rem;
+  border-radius: 1.15rem;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(4, 10, 20, 0.92);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+  display: grid;
+  gap: 0.4rem;
+  max-height: min(52vh, 420px);
+  overflow: auto;
+}
+
+.search-suggestion {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0.95rem;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  text-align: left;
+  padding: 0.75rem 0.85rem;
+  display: grid;
+  gap: 0.18rem;
+}
+
+.search-suggestion:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.search-suggestion-title {
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.search-suggestion-meta {
+  color: var(--muted);
+  font-size: 0.84rem;
 }
 
 .hero-stats {
