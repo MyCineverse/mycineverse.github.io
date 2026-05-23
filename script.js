@@ -47,6 +47,7 @@ const state = {
   media: "movie",
   section: "new_releases",
   genre: "all",
+  region: "all",
   searchTerm: "",
   genres: [],
   featured: null,
@@ -228,6 +229,72 @@ function getItemMediaType(item) {
   return item.media_type || (item.title ? "movie" : "tv");
 }
 
+const ASIAN_COUNTRY_CODES = new Set([
+  "JP",
+  "KR",
+  "CN",
+  "TW",
+  "HK",
+  "TH",
+  "IN",
+  "PH",
+  "VN",
+  "ID",
+  "MY",
+  "SG",
+  "BD",
+  "PK",
+  "NP",
+  "LK",
+  "MM",
+  "KH",
+  "LA",
+  "MN",
+  "KZ",
+  "UZ",
+  "TJ",
+  "KG",
+  "TM",
+  "AE",
+  "SA",
+  "QA",
+  "BH",
+  "OM",
+  "KW",
+  "TR",
+  "IR",
+  "IQ",
+  "JO",
+  "LB",
+  "SY",
+  "YE",
+  "IL",
+]);
+
+const ASIAN_LANGUAGES = new Set([
+  "ja",
+  "ko",
+  "zh",
+  "th",
+  "hi",
+  "ta",
+  "te",
+  "ml",
+  "bn",
+  "ur",
+  "id",
+  "ms",
+  "vi",
+  "tl",
+  "km",
+  "lo",
+  "mn",
+  "fa",
+  "tr",
+  "ar",
+  "he",
+]);
+
 function cardTypeLabel(item) {
   const mediaType = getItemMediaType(item);
   if (state.media === "anime") return "Anime";
@@ -255,6 +322,27 @@ function isAnimeListingItem(item) {
 
 function isSeriesListingItem(item) {
   return getItemMediaType(item) === "tv" && !isAnimeListingItem(item);
+}
+
+function isAsianListingItem(item) {
+  if (!item) return false;
+  if (state.media === "anime" && isAnimeListingItem(item)) return true;
+
+  const countries = [
+    ...(Array.isArray(item.origin_country) ? item.origin_country : []),
+    ...(Array.isArray(item.production_countries) ? item.production_countries.map((country) => country.iso_3166_1) : []),
+  ].filter(Boolean);
+  if (countries.some((country) => ASIAN_COUNTRY_CODES.has(String(country).toUpperCase()))) {
+    return true;
+  }
+
+  const language = String(item.original_language || "").toLowerCase();
+  if (ASIAN_LANGUAGES.has(language)) {
+    return true;
+  }
+
+  const title = String(item.title || item.name || "").toLowerCase();
+  return /japan|korea|china|korean|japanese|mandarin|anime|asia/i.test(title);
 }
 
 function posterTypeLabel(mediaType) {
@@ -347,6 +435,11 @@ function activeGenreName() {
   return state.genres.find((genre) => String(genre.id) === String(state.genre))?.name || "Selected genre";
 }
 
+function activeRegionName() {
+  if (state.region === "asia") return "Asian";
+  return "";
+}
+
 function rankSuggestion(item, query) {
   const title = normalizeQuery(item.title || item.name || "");
   const q = normalizeQuery(query);
@@ -429,13 +522,15 @@ async function fetchUnifiedSearch(query, page = 1) {
     .sort((a, b) => a._rank - b._rank || a._index - b._index)
     .map(({ _rank, _index, ...item }) => item);
 
+  const filtered = ranked.filter((item) => matchesSelectedRegion(item) && matchesSelectedGenre(item));
+
   const totalPages = Math.max(
     tmdbResults.status === "fulfilled" ? tmdbResults.value.total_pages || 1 : 1,
     jikanResults.status === "fulfilled" ? jikanResults.value.pagination?.last_visible_page || 1 : 1
   );
 
   return {
-    results: ranked,
+    results: filtered,
     total_pages: Math.max(1, Math.min(totalPages || 1, 50)),
   };
 }
@@ -503,6 +598,12 @@ function matchesSelectedGenre(item) {
   return genreIds.includes(String(state.genre));
 }
 
+function matchesSelectedRegion(item) {
+  if (state.region === "all") return true;
+  if (state.region === "asia") return isAsianListingItem(item);
+  return true;
+}
+
 function matchesSelectedListingType(item) {
   if (state.media === "anime") return isAnimeListingItem(item);
   if (state.media === "tv") return isSeriesListingItem(item);
@@ -510,7 +611,7 @@ function matchesSelectedListingType(item) {
 }
 
 function matchesSelectedBrowseFilters(item) {
-  return isReleasedItem(item) && matchesSelectedGenre(item) && matchesSelectedListingType(item);
+  return isReleasedItem(item) && matchesSelectedGenre(item) && matchesSelectedRegion(item) && matchesSelectedListingType(item);
 }
 
 async function loadGenreFeed(page = 1) {
@@ -607,6 +708,7 @@ async function loadFeaturedQueue() {
   const data = await request(listEndpoint);
   const picks = (data.results || [])
     .filter((item) => (state.media === "tv" ? isSeriesListingItem(item) : true))
+    .filter((item) => matchesSelectedRegion(item))
     .slice(0, 6);
 
   if (!picks.length) {
@@ -835,12 +937,13 @@ function setHero(movie) {
   dom.featureYear.textContent = String(formatYear(movie.release_date || movie.first_air_date));
   dom.featureRuntime.textContent = `${formatRuntime(movie.runtime || movie.episode_run_time?.[0])} runtime`;
   dom.featureScore.textContent = movie.vote_average ? `${movie.vote_average.toFixed(1)} / 10` : "-- / 10";
+  const regionPrefix = state.region === "asia" ? "Asian " : "";
   dom.featureLabel.textContent =
     state.media === "movie"
-      ? "Fresh movie spotlight"
+      ? `${regionPrefix}Fresh movie spotlight`
       : state.media === "anime"
-        ? "Fresh anime spotlight"
-        : "Fresh series spotlight";
+        ? `${regionPrefix}Fresh anime spotlight`
+        : `${regionPrefix}Fresh series spotlight`;
   dom.featureMedia.innerHTML = movie.backdrop_path
     ? `<img src="${posterUrl(movie.backdrop_path)}" alt="${escapeHtml(movie.title || movie.name)} backdrop" />`
     : `<div class="feature-placeholder">No backdrop available for this title.</div>`;
@@ -868,11 +971,15 @@ async function loadMovies() {
   dom.resultsLabel.textContent = state.searchTerm ? "All search results" : active.label;
   dom.resultsTitle.textContent = state.searchTerm
     ? `Results for "${state.searchTerm}"`
-    : state.genre !== "all"
-      ? `${activeGenreName()} picks`
-    : state.section === "new_releases"
-      ? "Trending now"
-      : `Browse ${active.label.toLowerCase()}`;
+    : state.genre !== "all" && state.region !== "all"
+      ? `${activeRegionName()} ${activeGenreName()} picks`
+      : state.genre !== "all"
+        ? `${activeGenreName()} picks`
+        : state.region !== "all"
+          ? `${activeRegionName()} picks`
+          : state.section === "new_releases"
+            ? "Trending now"
+            : `Browse ${active.label.toLowerCase()}`;
 
   setStatus("Loading titles...");
   setLoadingSkeleton();
@@ -906,7 +1013,7 @@ async function loadMovies() {
       .filter((movie) => movie.poster_path || movie.backdrop_path);
     const filteredMovies =
       state.searchTerm
-        ? sourceMovies.filter((movie) => matchesSelectedGenre(movie))
+        ? sourceMovies.filter((movie) => matchesSelectedGenre(movie) && matchesSelectedRegion(movie))
         : state.media === "anime"
         ? sourceMovies.filter(matchesSelectedBrowseFilters)
         : state.media === "tv"
@@ -925,6 +1032,18 @@ async function loadMovies() {
     setStatus("We could not load catalog data right now. Check your connection and API setup.");
     dom.movieGrid.innerHTML = "";
   }
+}
+
+function syncTopbarStates() {
+  document.querySelectorAll("[data-media]").forEach((item) => {
+    item.classList.toggle("active", item.dataset.media === state.media);
+  });
+  document.querySelectorAll("[data-section]").forEach((item) => {
+    item.classList.toggle("active", item.dataset.section === state.section);
+  });
+  document.querySelectorAll("[data-region]").forEach((item) => {
+    item.classList.toggle("active", item.dataset.region === state.region);
+  });
 }
 
 async function loadAnimeFeed(page = 1, section = "new_releases", searchTerm = "") {
@@ -1273,8 +1392,6 @@ async function openTitle(movieId, mediaType = state.media) {
 function wireEvents() {
   document.querySelectorAll("[data-media]").forEach((button) => {
     button.addEventListener("click", async () => {
-      document.querySelectorAll("[data-media]").forEach((item) => item.classList.remove("active"));
-      button.classList.add("active");
       state.media = button.dataset.media;
       state.section = "new_releases";
       state.genre = "all";
@@ -1284,9 +1401,7 @@ function wireEvents() {
       dom.searchInput.value = "";
       dom.clearSearch.hidden = true;
       clearSearchSuggestions();
-      document.querySelectorAll("[data-section]").forEach((item, index) => {
-        item.classList.toggle("active", index === 0);
-      });
+      syncTopbarStates();
       updateSectionButtonLabels();
       await refreshData();
     });
@@ -1294,13 +1409,23 @@ function wireEvents() {
 
   document.querySelectorAll("[data-section]").forEach((button) => {
     button.addEventListener("click", () => {
-      document.querySelectorAll("[data-section]").forEach((item) => item.classList.remove("active"));
-      button.classList.add("active");
       state.section = button.dataset.section;
       state.genre = "all";
       state.currentPage = 1;
       clearSearchSuggestions();
+      syncTopbarStates();
       renderGenres();
+      loadMovies();
+    });
+  });
+
+  document.querySelectorAll("[data-region]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const nextRegion = state.region === button.dataset.region ? "all" : button.dataset.region;
+      state.region = nextRegion;
+      state.currentPage = 1;
+      clearSearchSuggestions();
+      syncTopbarStates();
       loadMovies();
     });
   });
@@ -1442,6 +1567,7 @@ async function refreshData() {
 async function bootstrap() {
   if (!assertKey()) return;
   wireEvents();
+  syncTopbarStates();
   updateSectionButtonLabels();
   renderGenres();
   setStatus("Loading catalog data...");

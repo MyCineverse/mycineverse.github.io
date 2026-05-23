@@ -136,7 +136,7 @@ main {
 .topbar-links {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.6rem;
+  gap: 0.45rem;
 }
 
 .nav-link,
@@ -153,7 +153,16 @@ main {
 .nav-link,
 .pill {
   border-radius: 999px;
-  padding: 0.65rem 1rem;
+  padding: 0.58rem 0.92rem;
+  font-size: 0.94rem;
+}
+
+.nav-link.nav-region {
+  border-color: rgba(109, 214, 255, 0.24);
+}
+
+.nav-link.nav-region.active {
+  background: linear-gradient(135deg, rgba(109, 214, 255, 0.2), rgba(248, 184, 78, 0.14));
 }
 
 .nav-link.active,
