@@ -192,6 +192,38 @@ function mediaTypeLabel(mediaType) {
   return mediaType === "tv" ? "Series" : "Movie";
 }
 
+function originLabel(item) {
+  const countries = [
+    ...(Array.isArray(item.origin_country) ? item.origin_country : []),
+    ...(Array.isArray(item.production_countries) ? item.production_countries.map((country) => country.iso_3166_1) : []),
+  ].filter(Boolean);
+  const language = String(item.original_language || "").toLowerCase();
+  const country = countries[0] || "";
+
+  if (countries.includes("KR") || language === "ko") return "Korean";
+  if (countries.includes("JP") || language === "ja") return "Japanese";
+  if (countries.includes("US")) return "American";
+  if (language === "en") return "English";
+
+  const labels = {
+    GB: "British",
+    CA: "Canadian",
+    AU: "Australian",
+    IN: "Indian",
+    CN: "Chinese",
+    FR: "French",
+    DE: "German",
+    ES: "Spanish",
+    IT: "Italian",
+    TH: "Thai",
+    PH: "Filipino",
+    HK: "Hong Kong",
+    TW: "Taiwanese",
+  };
+
+  return labels[country] || "";
+}
+
 function getItemMediaType(item) {
   return item.media_type || (item.title ? "movie" : "tv");
 }
@@ -465,6 +497,22 @@ function isReleasedItem(item) {
   return releaseDate <= now;
 }
 
+function matchesSelectedGenre(item) {
+  if (state.genre === "all") return true;
+  const genreIds = (item.genre_ids || []).map(String);
+  return genreIds.includes(String(state.genre));
+}
+
+function matchesSelectedListingType(item) {
+  if (state.media === "anime") return isAnimeListingItem(item);
+  if (state.media === "tv") return isSeriesListingItem(item);
+  return true;
+}
+
+function matchesSelectedBrowseFilters(item) {
+  return isReleasedItem(item) && matchesSelectedGenre(item) && matchesSelectedListingType(item);
+}
+
 async function loadGenreFeed(page = 1) {
   const pageIndex = Math.max(1, Math.min(Number(page) || 1, 50));
   const genre = String(state.genre || "all");
@@ -482,6 +530,7 @@ async function loadGenreFeed(page = 1) {
       ? "/discover/movie"
       : "/discover/tv";
   const dateKey = state.media === "movie" ? "primary_release_date" : "first_air_date";
+  const extraFilters = state.media === "tv" ? "&without_genres=16" : "";
   const releaseWindow =
     state.section === "new_releases"
       ? `&${dateKey}.gte=${from}&${dateKey}.lte=${to}`
@@ -497,13 +546,13 @@ async function loadGenreFeed(page = 1) {
           ? "popularity.desc"
           : "popularity.desc";
 
-  const path = `${basePath}?with_genres=${encodeURIComponent(genre)}${releaseWindow}&sort_by=${sortBy}&page=${pageIndex}`;
+  const path = `${basePath}?with_genres=${encodeURIComponent(genre)}${extraFilters}${releaseWindow}&sort_by=${sortBy}&vote_count.gte=10&page=${pageIndex}`;
   const data = await request(path);
   return {
     ...data,
     results: (data.results || [])
       .filter((item) => item.poster_path || item.backdrop_path)
-      .filter(isReleasedItem),
+      .filter(matchesSelectedBrowseFilters),
     total_pages: data.total_pages || 1,
   };
 }
@@ -652,12 +701,14 @@ function createMovieCard(movie) {
   const overview = movie.overview || "No overview available for this title yet.";
   const year = formatYear(movie.release_date || movie.first_air_date);
   const rating = movie.vote_average ? movie.vote_average.toFixed(1) : "N/A";
+  const origin = originLabel(movie);
 
   return `
     <article class="movie-card" data-id="${movie.id}">
       <div class="poster-wrap">
         <img loading="lazy" src="${posterUrl(movie.poster_path)}" alt="${escapeHtml(title)} poster" />
         <span class="rating-badge">★ ${rating}</span>
+        ${origin ? `<span class="origin-badge">${escapeHtml(origin)}</span>` : ""}
       </div>
       <div class="movie-card-body">
         <h3>${escapeHtml(title)}</h3>
@@ -678,12 +729,14 @@ function createSearchResultCard(movie) {
   const year = formatYear(movie.release_date || movie.first_air_date);
   const rating = movie.vote_average ? movie.vote_average.toFixed(1) : "N/A";
   const mediaType = state.media === "anime" ? "anime" : getItemMediaType(movie);
+  const origin = originLabel(movie);
 
   return `
     <article class="movie-card" data-id="${movie.id}">
       <div class="poster-wrap">
         <img loading="lazy" src="${posterUrl(movie.poster_path)}" alt="${escapeHtml(title)} poster" />
         <span class="rating-badge">${cardTypeLabel(movie)} · ★ ${rating}</span>
+        ${origin ? `<span class="origin-badge">${escapeHtml(origin)}</span>` : ""}
       </div>
       <div class="movie-card-body">
         <h3>${escapeHtml(title)}</h3>
@@ -710,6 +763,7 @@ function createShelfCard(item, mediaType = state.media) {
   const title = item.title || item.name || "Untitled";
   const rating = item.vote_average ? item.vote_average.toFixed(1) : "N/A";
   const year = formatYear(item.release_date || item.first_air_date);
+  const origin = originLabel(item);
   return `
     <article class="shelf-card" data-open="${item.id}" data-media-type="${mediaType}">
       <img loading="lazy" src="${posterUrl(item.poster_path)}" alt="${escapeHtml(title)} poster" />
@@ -718,6 +772,7 @@ function createShelfCard(item, mediaType = state.media) {
         <div class="shelf-card-meta">
           <span>${year}</span>
           <span>★ ${rating}</span>
+          ${origin ? `<span>${escapeHtml(origin)}</span>` : ""}
         </div>
       </div>
     </article>
@@ -851,14 +906,12 @@ async function loadMovies() {
       .filter((movie) => movie.poster_path || movie.backdrop_path);
     const filteredMovies =
       state.searchTerm
-        ? sourceMovies
+        ? sourceMovies.filter((movie) => matchesSelectedGenre(movie))
         : state.media === "anime"
-        ? sourceMovies.filter(isAnimeListingItem).filter((movie) =>
-            state.genre === "all" ? true : (movie.genre_ids || []).map(String).includes(String(state.genre))
-          )
+        ? sourceMovies.filter(matchesSelectedBrowseFilters)
         : state.media === "tv"
-          ? sourceMovies.filter(isSeriesListingItem)
-          : sourceMovies;
+          ? sourceMovies.filter(matchesSelectedBrowseFilters)
+          : sourceMovies.filter(matchesSelectedBrowseFilters);
     state.totalPages = Math.max(1, Math.min(totalPages || 1, 500));
     renderMovies(filteredMovies);
     setStatus(
