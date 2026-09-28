@@ -79,7 +79,6 @@
         <div class="feature-copy">
           <p class="feature-label" id="feature-label">Recent movie spotlight</p>
           <h2 id="feature-title">Loading...</h2>
-          <p id="feature-overview">We are picking a standout title to highlight.</p>
           <div class="feature-meta">
             <span id="feature-year">--</span>
             <span id="feature-runtime">-- min</span>
@@ -95,9 +94,14 @@
         <p>Browse</p>
         <h2>Genres and collections</h2>
       </div>
-      <div class="pill-row" id="genre-row">
-        <button class="pill active" data-genre="all">All</button>
-        <span class="pill pill-muted">Loading genres...</span>
+      <div class="genre-dropdown" id="genre-row">
+        <button class="genre-dropdown-toggle" type="button" aria-haspopup="true" aria-expanded="false">
+          <span id="genre-selected">All</span><span class="genre-chevron" aria-hidden="true">&#9662;</span>
+        </button>
+        <div class="genre-dropdown-menu" role="menu" hidden>
+          <button class="genre-option active" type="button" role="menuitem" data-genre="all">All</button>
+          <span class="genre-loading">Loading genres...</span>
+        </div>
       </div>
     </section>
 

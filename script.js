@@ -118,7 +118,6 @@ const dom = {
   statRating: document.getElementById("stat-rating"),
   featureMedia: document.getElementById("feature-media"),
   featureTitle: document.getElementById("feature-title"),
-  featureOverview: document.getElementById("feature-overview"),
   featureYear: document.getElementById("feature-year"),
   featureRuntime: document.getElementById("feature-runtime"),
   featureScore: document.getElementById("feature-score"),
@@ -766,7 +765,6 @@ async function refreshFeatured() {
   if (!state.featuredQueue.length) {
     dom.featureMedia.innerHTML = `<div class="feature-placeholder">No recent releases found for this section yet.</div>`;
     dom.featureTitle.textContent = "Nothing recent yet";
-    dom.featureOverview.textContent = "Check back soon for new arrivals.";
     dom.featureYear.textContent = "--";
     dom.featureRuntime.textContent = "-- min";
     dom.featureScore.textContent = "-- / 10";
@@ -788,14 +786,17 @@ function updateStats() {
 }
 
 function renderGenres() {
-  const chips = [
-    `<button class="pill ${state.genre === "all" ? "active" : ""}" data-genre="all">All</button>`,
-    ...state.genres.map(
-      (genre) =>
-        `<button class="pill ${state.genre === String(genre.id) ? "active" : ""}" data-genre="${genre.id}">${escapeHtml(genre.name)}</button>`
+  const selected = state.genre === "all"
+    ? "All"
+    : state.genres.find((genre) => String(genre.id) === String(state.genre))?.name || "All";
+  const menu = dom.genreRow.querySelector(".genre-dropdown-menu");
+  dom.genreRow.querySelector("#genre-selected").textContent = selected;
+  menu.innerHTML = [
+    `<button class="genre-option ${state.genre === "all" ? "active" : ""}" type="button" role="menuitem" data-genre="all">All</button>`,
+    ...state.genres.map((genre) =>
+      `<button class="genre-option ${state.genre === String(genre.id) ? "active" : ""}" type="button" role="menuitem" data-genre="${genre.id}">${escapeHtml(genre.name)}</button>`
     ),
-  ];
-  dom.genreRow.innerHTML = chips.join("");
+  ].join("");
 }
 
 function createMovieCard(movie) {
@@ -932,8 +933,8 @@ function setLoadingSkeleton() {
 
 function setHero(movie) {
   state.featured = movie;
+  dom.featurePanel?.classList.toggle("is-anime", state.media === "anime");
   dom.featureTitle.textContent = movie.title || movie.name || "Featured title";
-  dom.featureOverview.textContent = movie.overview || "This featured title is ready for you to explore.";
   dom.featureYear.textContent = String(formatYear(movie.release_date || movie.first_air_date));
   dom.featureRuntime.textContent = `${formatRuntime(movie.runtime || movie.episode_run_time?.[0])} runtime`;
   dom.featureScore.textContent = movie.vote_average ? `${movie.vote_average.toFixed(1)} / 10` : "-- / 10";
@@ -1074,11 +1075,6 @@ async function loadAnimeFeed(page = 1, section = "new_releases", searchTerm = ""
     upcoming: [`/top/anime?page=${pageIndex}`],
   };
 
-  const isCurrentYear = (item) => {
-    const year = new Date(item.release_date || item.first_air_date || "").getFullYear();
-    return !Number.isNaN(year) && year === new Date().getFullYear();
-  };
-
   const responses = await Promise.allSettled((sectionPaths[section] || sectionPaths.new_releases).map((path) => requestJikan(path)));
   for (const response of responses) {
     if (response.status !== "fulfilled") continue;
@@ -1087,7 +1083,6 @@ async function loadAnimeFeed(page = 1, section = "new_releases", searchTerm = ""
       if (seen.has(key)) continue;
       if (!item.poster_path && !item.backdrop_path) continue;
       if (item.status && String(item.status).toLowerCase().includes("not yet aired")) continue;
-      if (section === "new_releases" && !isCurrentYear(item)) continue;
       if (genreFilter && !(item.genre_ids || []).map(String).includes(genreFilter)) continue;
       seen.add(key);
       merged.push(item);
@@ -1431,11 +1426,27 @@ function wireEvents() {
   });
 
   dom.genreRow.addEventListener("click", (event) => {
+    const toggle = event.target.closest(".genre-dropdown-toggle");
+    if (toggle) {
+      const menu = dom.genreRow.querySelector(".genre-dropdown-menu");
+      menu.hidden = !menu.hidden;
+      toggle.setAttribute("aria-expanded", String(!menu.hidden));
+      return;
+    }
     const target = event.target.closest("[data-genre]");
-    if (!target || target.classList.contains("pill-muted")) return;
+    if (!target) return;
     state.genre = target.dataset.genre;
     renderGenres();
+    dom.genreRow.querySelector(".genre-dropdown-menu").hidden = true;
+    dom.genreRow.querySelector(".genre-dropdown-toggle").setAttribute("aria-expanded", "false");
     loadMovies();
+  });
+
+  document.addEventListener("click", (event) => {
+    if (dom.genreRow.contains(event.target)) return;
+    const menu = dom.genreRow.querySelector(".genre-dropdown-menu");
+    menu.hidden = true;
+    dom.genreRow.querySelector(".genre-dropdown-toggle").setAttribute("aria-expanded", "false");
   });
 
   dom.searchForm.addEventListener("submit", (event) => {

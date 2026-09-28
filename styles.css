@@ -328,6 +328,12 @@ main {
   grid-template-rows: minmax(280px, 1fr) auto;
 }
 
+.feature-panel.is-anime {
+  grid-template-columns: minmax(150px, 0.72fr) minmax(0, 1fr);
+  grid-template-rows: minmax(280px, 340px);
+  align-items: stretch;
+}
+
 .feature-panel.is-switching .feature-media,
 .feature-panel.is-switching .feature-copy {
   animation: featureSwap 0.55s ease;
@@ -340,11 +346,23 @@ main {
     radial-gradient(circle at top, rgba(109, 214, 255, 0.2), transparent 40%);
 }
 
+.feature-panel.is-anime .feature-media {
+  min-height: 0;
+  padding: 1.1rem;
+  background: radial-gradient(circle at center, rgba(109, 214, 255, 0.12), transparent 72%);
+}
+
 .feature-media img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.feature-panel.is-anime .feature-media img {
+  border-radius: 1rem;
+  object-fit: contain;
+  filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.45));
 }
 
 .feature-placeholder {
@@ -359,6 +377,14 @@ main {
 .feature-copy {
   padding: 1.4rem 1.4rem 1.5rem;
   border-top: 1px solid var(--line);
+}
+
+.feature-panel.is-anime .feature-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-top: 0;
+  border-left: 1px solid var(--line);
 }
 
 .feature-label {
@@ -398,6 +424,16 @@ main {
   margin-top: 1.35rem;
   border-radius: 1.9rem;
   padding: 1.2rem;
+}
+
+.toolbar {
+  position: relative;
+  z-index: 2;
+}
+
+.results {
+  position: relative;
+  z-index: 1;
 }
 
 .ad-block {
@@ -572,10 +608,68 @@ main {
   font-size: clamp(1.3rem, 2vw, 2rem);
 }
 
-.pill-row {
+.genre-dropdown {
+  position: relative;
+  width: min(100%, 260px);
+  z-index: 10;
+}
+
+.genre-dropdown-toggle {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.65rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.genre-chevron {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.genre-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  width: 100%;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: #11182a;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+}
+
+.genre-option {
+  display: block;
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 0;
+  border-radius: 0.6rem;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.genre-option:hover,
+.genre-option.active {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.genre-loading {
+  display: block;
+  padding: 0.65rem 0.75rem;
+  color: var(--muted);
 }
 
 .pill-muted {
@@ -961,6 +1055,11 @@ main {
     order: -1;
   }
 
+  .feature-panel.is-anime {
+    grid-template-columns: minmax(130px, 0.7fr) minmax(0, 1fr);
+    grid-template-rows: minmax(240px, 300px);
+  }
+
   .platform-groups {
     grid-template-columns: 1fr;
   }
@@ -1076,8 +1175,21 @@ main {
     border-radius: 1.35rem;
   }
 
+  .feature-panel.is-anime {
+    grid-template-columns: minmax(105px, 0.65fr) minmax(0, 1fr);
+    grid-template-rows: minmax(220px, 270px);
+  }
+
   .feature-media {
     min-height: 220px;
+  }
+
+  .feature-panel.is-anime .feature-media {
+    padding: 0.65rem;
+  }
+
+  .feature-panel.is-anime .feature-copy {
+    padding: 1rem;
   }
 
   .feature-copy h2 {
