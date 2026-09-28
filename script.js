@@ -111,6 +111,7 @@ const dom = {
   status: document.getElementById("status"),
   resultsLabel: document.getElementById("results-label"),
   resultsTitle: document.getElementById("results-title"),
+  resultsSection: document.getElementById("results-section"),
   genreRow: document.getElementById("genre-row"),
   featureLabel: document.getElementById("feature-label"),
   statCount: document.getElementById("stat-count"),
@@ -1538,6 +1539,7 @@ function wireEvents() {
 }
 
 function updateSectionButtonLabels() {
+  dom.resultsSection.classList.toggle("is-anime", state.media === "anime");
   const labels =
     state.media === "movie"
       ? ["Trending Now", "Popular", "Top Rated", "Now Playing", "Upcoming"]
@@ -1546,6 +1548,7 @@ function updateSectionButtonLabels() {
         : ["Trending Now", "Popular Series", "Top Rated Series", "Airing Today", "On The Air"];
   document.querySelectorAll("[data-section]").forEach((button, index) => {
     button.textContent = labels[index] || button.textContent;
+    button.hidden = state.media === "anime" && button.dataset.section === "new_releases";
   });
   dom.searchInput.placeholder =
     state.media === "movie"
@@ -1567,8 +1570,15 @@ function updateSectionButtonLabels() {
 async function refreshData() {
   renderGenres();
   setStatus("Loading catalog data...");
-  await Promise.all([loadGenres(), loadFeaturedMovie()]);
-  await loadMovies();
+  // Keep the main feed loading even if genres or the spotlight API request fails.
+  const secondaryLoads = Promise.allSettled([loadGenres(), loadFeaturedMovie()]);
+  if (state.media === "anime") {
+    await loadMovies();
+    await secondaryLoads;
+  } else {
+    await secondaryLoads;
+    await loadMovies();
+  }
   clearTimeout(refreshData._timer);
   refreshData._timer = window.setTimeout(() => {
     refreshData().catch((error) => console.error(error));

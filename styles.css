@@ -684,6 +684,15 @@ main {
   margin-bottom: 1rem;
 }
 
+.results.is-anime .results-head > div {
+  display: none;
+}
+
+.results.is-anime .results-head {
+  justify-content: flex-end;
+  margin-bottom: 0;
+}
+
 .text-button {
   border-radius: 999px;
   padding: 0.65rem 0.95rem;
