@@ -1236,6 +1236,37 @@ function getStreamingLinksFor(data, mediaType) {
   `;
 }
 
+const KISSKH_DIRECT_LINKS = {
+  "take charge of my heart": "https://kisskh.do/Drama/Take-Charge-of-My-Heart--2026-/",
+  "jujutsu kaisen 2nd season": "https://kisskh.do/Drama/Jujutsu-Kaisen-2nd-Season",
+  "matchbox the movie": "https://kisskh.do/Drama/Matchbox-the-Movie--2026-",
+  "reacher season 4": "https://kisskh.do/Drama/Reacher---Season-4/",
+  "avatar the last airbender book 2 earth": "https://kisskh.do/Drama/Avatar--The-Last-Airbender--Book-2---Earth/"
+};
+
+function getKissKhUrl(title) {
+  const cleanTitle = String(title || "").trim();
+  if (!cleanTitle) return "";
+  const normalizedTitle = cleanTitle.toLowerCase().replace(/\s+/g, " ");
+  if (KISSKH_DIRECT_LINKS[normalizedTitle]) return KISSKH_DIRECT_LINKS[normalizedTitle];
+  const searchUrl = new URL("/Search", "https://kisskh.do");
+  searchUrl.searchParams.set("query", cleanTitle);
+  return searchUrl.toString();
+}
+
+function getKissKhWatchLink(title) {
+  const url = getKissKhUrl(title);
+  return url
+    ? `<a class="provider-pill provider-watch-online" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Watch Online</a>`
+    : `<button class="provider-pill provider-watch-online" type="button" data-stream-unavailable>Watch Online</button>`;
+}
+
+function wireUnavailableStreamButtons() {
+  dom.modalBody.querySelectorAll("[data-stream-unavailable]").forEach((button) => {
+    button.addEventListener("click", () => alert("This title is currently not available for online streaming."));
+  });
+}
+
 function getSponsoredLinkMarkup() {
   return `
     <a class="secondary sponsored" href="${SMARTLINK_URL}" target="_blank" rel="noreferrer sponsored">
@@ -1287,8 +1318,9 @@ async function openTitle(movieId, mediaType = state.media) {
             </div>
           </div>
           <div class="watch-section">
-            <h3>Watch on official platforms</h3>
+            <h3>Stream Online Here</h3>
             <div class="provider-grid">
+              ${getKissKhWatchLink(anime.title)}
               ${anime.url ? `<a class="provider-pill" href="${anime.url}" target="_blank" rel="noreferrer">Open on MyAnimeList</a>` : `<span class="provider-empty">No official link available.</span>`}
             </div>
           </div>
@@ -1309,6 +1341,7 @@ async function openTitle(movieId, mediaType = state.media) {
           window.open(href, "_blank", "noopener");
         });
       });
+      wireUnavailableStreamButtons();
       return;
     }
 
@@ -1351,8 +1384,9 @@ async function openTitle(movieId, mediaType = state.media) {
           </div>
         </div>
         <div class="watch-section">
-          <h3>Watch on official platforms</h3>
+          <h3>Stream Online Here</h3>
           <div class="provider-grid">
+            ${getKissKhWatchLink(title)}
             ${providerHtml || `<span class="provider-empty">No official provider found in your region yet.</span>`}
           </div>
         </div>
@@ -1378,6 +1412,7 @@ async function openTitle(movieId, mediaType = state.media) {
         window.open(href, '_blank', 'noopener');
       });
     });
+    wireUnavailableStreamButtons();
   } catch (error) {
     console.error(error);
     dom.modalBody.innerHTML = `<div class="status">Could not load this title right now.</div>`;
