@@ -1218,6 +1218,54 @@ function isAnimeTitle(data) {
   return isJapanese && hasAnimationGenre;
 }
 
+function getFzMoviesUrl(data, mediaType, searchQuery = "") {
+  const title = (data.title || data.name || data.original_title || data.original_name || "").trim();
+  const query = String(searchQuery || "").trim();
+  const searchTerm = query || title;
+  const searchParams = new URLSearchParams({ s: searchTerm });
+  const searchUrl = `https://thefzmovies.com/?${searchParams.toString()}`;
+  const slugify = (value) =>
+    value.toLowerCase().trim().replace(/\s+/g, "-");
+  const isValidSlug = (value) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
+
+  if (mediaType === "movie") {
+    const movieQuery = query || `${title} ${formatYear(data.release_date)}`;
+    const match = movieQuery.match(/^(.+?)\s+(\d{4})$/);
+    if (!match) return searchUrl;
+
+    const slug = slugify(`${match[1]} ${match[2]}`);
+    return isValidSlug(slug) ? `https://thefzmovies.com/${slug}/` : searchUrl;
+  }
+
+  if (mediaType === "tv") {
+    const seriesQuery = query || title;
+    const match = seriesQuery.match(/^(.+?)\s+s(\d{1,2})$/i);
+    if (!match) return searchUrl;
+
+    const countries = Array.isArray(data.origin_country) ? data.origin_country : [];
+    const isKorean = countries.includes("KR") || String(data.original_language || "").toLowerCase() === "ko";
+    const genres = (data.genres || []).map((genre) => String(genre.name).toLowerCase());
+    const suffix = !isKorean
+      ? "tv-series"
+      : genres.includes("drama")
+        ? "korean-drama"
+        : "korean-series";
+    const season = `s${match[2].padStart(2, "0")}`;
+    const slug = slugify(`${match[1]} ${season}-${suffix}`);
+    return isValidSlug(slug) ? `https://thefzmovies.com/${slug}/` : searchUrl;
+  }
+
+  return searchUrl;
+}
+
+function wireFzMoviesLink(data, mediaType) {
+  const link = dom.modalBody.querySelector("[data-fzmovies-link]");
+  if (!link) return;
+  link.addEventListener("click", () => {
+    link.href = getFzMoviesUrl(data, mediaType, dom.searchInput.value);
+  });
+}
+
 function getStreamingLinksFor(data, mediaType) {
   const title = (data.title || data.name || data.original_title || data.original_name || "").trim();
   const query = title ? encodeURIComponent(title) : "";
@@ -1227,12 +1275,18 @@ function getStreamingLinksFor(data, mediaType) {
     return `
       <a class="provider-pill" href="https://animepahe.pw" target="_blank" rel="noreferrer">animepahe</a>
       <a class="provider-pill" href="https://kisskh.do" target="_blank" rel="noreferrer">kisskh</a>
-      <a class="provider-pill" href="${downloaderUrl}">Download Movie</a>
+      <div class="download-links">
+        <a class="provider-pill" href="${downloaderUrl}">Download Movie: Link 1</a>
+        <a class="provider-pill" data-fzmovies-link href="${getFzMoviesUrl(data, mediaType, state.searchTerm)}" target="_blank" rel="noopener noreferrer">Download Movie: Link 2</a>
+      </div>
     `;
   }
 
   return `
-    <a class="provider-pill" href="${downloaderUrl}">Download Movie</a>
+    <div class="download-links">
+      <a class="provider-pill" href="${downloaderUrl}">Download Movie: Link 1</a>
+      <a class="provider-pill" data-fzmovies-link href="${getFzMoviesUrl(data, mediaType, state.searchTerm)}" target="_blank" rel="noopener noreferrer">Download Movie: Link 2</a>
+    </div>
   `;
 }
 
@@ -1332,6 +1386,7 @@ async function openTitle(movieId, mediaType = state.media) {
         </div>
       `;
 
+      wireFzMoviesLink(anime, mediaType);
       const sponsoredEls = dom.modalBody.querySelectorAll(".sponsored");
       sponsoredEls.forEach((el) => {
         el.addEventListener("click", (evt) => {
@@ -1402,6 +1457,7 @@ async function openTitle(movieId, mediaType = state.media) {
       </div>
     `;
 
+    wireFzMoviesLink(data, mediaType);
     // Attach click handlers for sponsored links (explicit opt-in)
     const sponsoredEls = dom.modalBody.querySelectorAll('.sponsored');
     sponsoredEls.forEach((el) => {

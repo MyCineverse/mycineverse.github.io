@@ -953,6 +953,12 @@ main {
   gap: 0.65rem;
 }
 
+.download-links {
+  display: flex;
+  flex: 1 1 100%;
+  gap: 0.65rem;
+}
+
 .provider-pill,
 .provider-empty {
   display: inline-flex;
@@ -968,6 +974,12 @@ main {
 .provider-pill {
   text-decoration: none;
   transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.download-links .provider-pill {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
 }
 
 .provider-watch-online {
