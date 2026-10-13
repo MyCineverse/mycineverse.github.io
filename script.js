@@ -1284,7 +1284,7 @@ function getStreamingLinksFor(data, mediaType) {
       <a class="provider-pill" href="https://kisskh.do" target="_blank" rel="noreferrer">kisskh</a>
       <div class="download-links">
         <a class="provider-pill" href="${downloaderUrl}">Download Movie: Link 1</a>
-        <a class="provider-pill" data-fzmovies-link href="${getFzMoviesUrl(data, mediaType, state.searchTerm)}" target="_blank" rel="noopener noreferrer">Download Movie: Link 2</a>
+        <a class="provider-pill" data-fzmovies-link href="${getFzMoviesUrl(data, mediaType, state.searchTerm)}">Download Movie: Link 2</a>
       </div>
     `;
   }
@@ -1292,7 +1292,7 @@ function getStreamingLinksFor(data, mediaType) {
   return `
     <div class="download-links">
       <a class="provider-pill" href="${downloaderUrl}">Download Movie: Link 1</a>
-      <a class="provider-pill" data-fzmovies-link href="${getFzMoviesUrl(data, mediaType, state.searchTerm)}" target="_blank" rel="noopener noreferrer">Download Movie: Link 2</a>
+      <a class="provider-pill" data-fzmovies-link href="${getFzMoviesUrl(data, mediaType, state.searchTerm)}">Download Movie: Link 2</a>
     </div>
   `;
 }
