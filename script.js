@@ -450,16 +450,18 @@ function rankSuggestion(item, query) {
   return 3;
 }
 
-function renderSearchSuggestions(items) {
+function renderSearchSuggestions(items, message = "") {
   if (!dom.searchSuggestions) return;
-  if (!items.length) {
+  if (!items.length && !message) {
     dom.searchSuggestions.hidden = true;
     dom.searchSuggestions.innerHTML = "";
     return;
   }
 
   dom.searchSuggestions.hidden = false;
-  dom.searchSuggestions.innerHTML = items
+  dom.searchSuggestions.innerHTML = message
+    ? `<div class="search-suggestion-status">${escapeHtml(message)}</div>`
+    : items
     .map((item, index) => {
       const title = item.title || item.name || "Untitled";
       return `
@@ -473,6 +475,7 @@ function renderSearchSuggestions(items) {
 }
 
 function clearSearchSuggestions() {
+  window.clearTimeout(state.searchSuggestTimer);
   state.searchSuggestions = [];
   state.searchSuggestToken += 1;
   if (!dom.searchSuggestions) return;
@@ -488,8 +491,17 @@ async function fetchUnifiedSearch(query, page = 1) {
 
   const [tmdbResults, jikanResults] = await Promise.allSettled([
     request(`/search/multi?query=${encodeURIComponent(trimmed)}&page=${page}&include_adult=false`),
-    requestJikan(`/anime?q=${encodeURIComponent(trimmed)}&page=${page}&sfw=true`),
+    state.media === "anime"
+      ? requestJikan(`/anime?q=${encodeURIComponent(trimmed)}&page=${page}&sfw=true`)
+      : Promise.resolve({ data: [], pagination: {} }),
   ]);
+
+  if (
+    tmdbResults.status === "rejected" &&
+    (state.media !== "anime" || jikanResults.status === "rejected")
+  ) {
+    throw tmdbResults.reason;
+  }
 
   const merged = [];
   const seen = new Set();
@@ -537,12 +549,7 @@ async function fetchUnifiedSearch(query, page = 1) {
 
 async function loadSearchSuggestions(query) {
   const trimmed = String(query || "").trim();
-  const token = ++state.searchSuggestToken;
-  if (trimmed.length < 2) {
-    state.searchSuggestions = [];
-    renderSearchSuggestions([]);
-    return;
-  }
+  const token = state.searchSuggestToken;
 
   try {
     const data = await fetchUnifiedSearch(trimmed, 1);
@@ -554,7 +561,7 @@ async function loadSearchSuggestions(query) {
     console.error(error);
     if (token !== state.searchSuggestToken) return;
     state.searchSuggestions = [];
-    renderSearchSuggestions([]);
+    renderSearchSuggestions([], "Suggestions could not be loaded. Try searching again.");
   }
 }
 
@@ -1550,13 +1557,19 @@ function wireEvents() {
 
   dom.searchInput.addEventListener("input", () => {
     const query = dom.searchInput.value.trim();
+    clearSearchSuggestions();
     if (!query) {
-      clearSearchSuggestions();
       return;
     }
-    window.clearTimeout(state.searchSuggestTimer);
+
+    if (query.length < 2) return;
+
+    const token = state.searchSuggestToken;
+    renderSearchSuggestions([], "Searching...");
     state.searchSuggestTimer = window.setTimeout(() => {
-      loadSearchSuggestions(query).catch((error) => console.error(error));
+      if (token === state.searchSuggestToken) {
+        loadSearchSuggestions(query).catch((error) => console.error(error));
+      }
     }, 220);
   });
 

@@ -273,6 +273,15 @@ main {
   overflow: auto;
 }
 
+.search-suggestions[hidden] {
+  display: none;
+}
+
+.search-suggestion-status {
+  padding: 0.75rem 0.85rem;
+  color: var(--muted);
+}
+
 .search-suggestion {
   width: 100%;
   border: 1px solid rgba(255, 255, 255, 0.06);
