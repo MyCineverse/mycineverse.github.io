@@ -1228,19 +1228,22 @@ function isAnimeTitle(data) {
 function getFzMoviesUrl(data, mediaType, searchQuery = "") {
   const title = (data.title || data.name || data.original_title || data.original_name || "").trim();
   const query = String(searchQuery || "").trim();
-  const searchTerm = query || title;
+  const searchTerm = title || query;
   const searchParams = new URLSearchParams({ s: searchTerm });
   const searchUrl = `https://thefzmovies.com/?${searchParams.toString()}`;
   const slugify = (value) =>
-    value.toLowerCase().trim().replace(/\s+/g, "-");
+    value
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
   const isValidSlug = (value) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
 
   if (mediaType === "movie") {
-    const movieQuery = query || `${title} ${formatYear(data.release_date)}`;
-    const match = movieQuery.match(/^(.+?)\s+(\d{4})$/);
-    if (!match) return searchUrl;
-
-    const slug = slugify(`${match[1]} ${match[2]}`);
+    const year = data.release_date ? new Date(data.release_date).getFullYear() : NaN;
+    if (!title || !Number.isFinite(year)) return searchUrl;
+    const slug = slugify(`${title} ${year}`);
     return isValidSlug(slug) ? `https://thefzmovies.com/${slug}/` : searchUrl;
   }
 
@@ -1265,14 +1268,6 @@ function getFzMoviesUrl(data, mediaType, searchQuery = "") {
   return searchUrl;
 }
 
-function wireFzMoviesLink(data, mediaType) {
-  const link = dom.modalBody.querySelector("[data-fzmovies-link]");
-  if (!link) return;
-  link.addEventListener("click", () => {
-    link.href = getFzMoviesUrl(data, mediaType, dom.searchInput.value);
-  });
-}
-
 function getStreamingLinksFor(data, mediaType) {
   const title = (data.title || data.name || data.original_title || data.original_name || "").trim();
   const query = title ? encodeURIComponent(title) : "";
@@ -1284,7 +1279,7 @@ function getStreamingLinksFor(data, mediaType) {
       <a class="provider-pill" href="https://kisskh.do" target="_blank" rel="noreferrer">kisskh</a>
       <div class="download-links">
         <a class="provider-pill" href="${downloaderUrl}">Download Movie: Link 1</a>
-        <a class="provider-pill" data-fzmovies-link href="${getFzMoviesUrl(data, mediaType, state.searchTerm)}">Download Movie: Link 2</a>
+        <a class="provider-pill" href="${getFzMoviesUrl(data, mediaType, state.searchTerm)}">Download Movie: Link 2</a>
       </div>
     `;
   }
@@ -1292,40 +1287,9 @@ function getStreamingLinksFor(data, mediaType) {
   return `
     <div class="download-links">
       <a class="provider-pill" href="${downloaderUrl}">Download Movie: Link 1</a>
-      <a class="provider-pill" data-fzmovies-link href="${getFzMoviesUrl(data, mediaType, state.searchTerm)}">Download Movie: Link 2</a>
+      <a class="provider-pill" href="${getFzMoviesUrl(data, mediaType, state.searchTerm)}">Download Movie: Link 2</a>
     </div>
   `;
-}
-
-const KISSKH_DIRECT_LINKS = {
-  "take charge of my heart": "https://kisskh.do/Drama/Take-Charge-of-My-Heart--2026-/",
-  "jujutsu kaisen 2nd season": "https://kisskh.do/Drama/Jujutsu-Kaisen-2nd-Season",
-  "matchbox the movie": "https://kisskh.do/Drama/Matchbox-the-Movie--2026-",
-  "reacher season 4": "https://kisskh.do/Drama/Reacher---Season-4/",
-  "avatar the last airbender book 2 earth": "https://kisskh.do/Drama/Avatar--The-Last-Airbender--Book-2---Earth/"
-};
-
-function getKissKhUrl(title) {
-  const cleanTitle = String(title || "").trim();
-  if (!cleanTitle) return "";
-  const normalizedTitle = cleanTitle.toLowerCase().replace(/\s+/g, " ");
-  if (KISSKH_DIRECT_LINKS[normalizedTitle]) return KISSKH_DIRECT_LINKS[normalizedTitle];
-  const searchUrl = new URL("/Search", "https://kisskh.do");
-  searchUrl.searchParams.set("query", cleanTitle);
-  return searchUrl.toString();
-}
-
-function getKissKhWatchLink(title) {
-  const url = getKissKhUrl(title);
-  return url
-    ? `<a class="provider-pill provider-watch-online" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Watch Online</a>`
-    : `<button class="provider-pill provider-watch-online" type="button" data-stream-unavailable>Watch Online</button>`;
-}
-
-function wireUnavailableStreamButtons() {
-  dom.modalBody.querySelectorAll("[data-stream-unavailable]").forEach((button) => {
-    button.addEventListener("click", () => alert("This title is currently not available for online streaming."));
-  });
 }
 
 function getSponsoredLinkMarkup() {
@@ -1381,7 +1345,6 @@ async function openTitle(movieId, mediaType = state.media) {
           <div class="watch-section">
             <h3>Stream Online Here</h3>
             <div class="provider-grid">
-              ${getKissKhWatchLink(anime.title)}
               ${anime.url ? `<a class="provider-pill" href="${anime.url}" target="_blank" rel="noreferrer">Open on MyAnimeList</a>` : `<span class="provider-empty">No official link available.</span>`}
             </div>
           </div>
@@ -1393,7 +1356,6 @@ async function openTitle(movieId, mediaType = state.media) {
         </div>
       `;
 
-      wireFzMoviesLink(anime, mediaType);
       const sponsoredEls = dom.modalBody.querySelectorAll(".sponsored");
       sponsoredEls.forEach((el) => {
         el.addEventListener("click", (evt) => {
@@ -1403,7 +1365,6 @@ async function openTitle(movieId, mediaType = state.media) {
           window.open(href, "_blank", "noopener");
         });
       });
-      wireUnavailableStreamButtons();
       return;
     }
 
@@ -1448,7 +1409,6 @@ async function openTitle(movieId, mediaType = state.media) {
         <div class="watch-section">
           <h3>Stream Online Here</h3>
           <div class="provider-grid">
-            ${getKissKhWatchLink(title)}
             ${providerHtml || `<span class="provider-empty">No official provider found in your region yet.</span>`}
           </div>
         </div>
@@ -1464,7 +1424,6 @@ async function openTitle(movieId, mediaType = state.media) {
       </div>
     `;
 
-    wireFzMoviesLink(data, mediaType);
     // Attach click handlers for sponsored links (explicit opt-in)
     const sponsoredEls = dom.modalBody.querySelectorAll('.sponsored');
     sponsoredEls.forEach((el) => {
@@ -1475,7 +1434,6 @@ async function openTitle(movieId, mediaType = state.media) {
         window.open(href, '_blank', 'noopener');
       });
     });
-    wireUnavailableStreamButtons();
   } catch (error) {
     console.error(error);
     dom.modalBody.innerHTML = `<div class="status">Could not load this title right now.</div>`;

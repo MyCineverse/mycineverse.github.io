@@ -991,11 +991,6 @@ main {
   text-align: center;
 }
 
-.provider-watch-online {
-  cursor: pointer;
-  font: inherit;
-}
-
 .provider-pill:hover {
   transform: translateY(-1px);
   border-color: rgba(255, 255, 255, 0.18);
